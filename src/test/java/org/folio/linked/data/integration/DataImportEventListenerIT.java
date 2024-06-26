@@ -12,7 +12,9 @@ import static org.folio.linked.data.test.TestUtil.loadResourceAsString;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.authorityEvent;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.instanceCreatedEvent;
 import static org.folio.linked.data.util.Constants.FOLIO_PROFILE;
+import static org.folio.search.domain.dto.ResourceIndexEventType.CREATE;
 import static org.folio.spring.tools.config.properties.FolioEnvironment.getFolioEnvName;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -22,10 +24,13 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.folio.linked.data.e2e.base.IntegrationTest;
 import org.folio.linked.data.integration.kafka.consumer.DataImportEventHandler;
 import org.folio.linked.data.model.entity.Resource;
+import org.folio.linked.data.model.entity.ResourceEdge;
 import org.folio.linked.data.repo.ResourceEdgeRepository;
 import org.folio.linked.data.repo.ResourceRepository;
 import org.folio.linked.data.service.impl.tenant.TenantScopedExecutionService;
+import org.folio.linked.data.test.kafka.KafkaSearchIndexTopicListener;
 import org.folio.search.domain.dto.DataImportEvent;
+import org.folio.search.domain.dto.ResourceIndexEventType;
 import org.folio.spring.tools.kafka.KafkaAdminService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +59,8 @@ class DataImportEventListenerIT {
   private DataImportEventHandler dataImportEventHandler;
   @Autowired
   private TenantScopedExecutionService tenantScopedExecutionService;
+  @Autowired
+  private KafkaSearchIndexTopicListener searchIndexTopicListener;
 
   @BeforeAll
   static void beforeAll(@Autowired KafkaAdminService kafkaAdminService) {
@@ -68,10 +75,11 @@ class DataImportEventListenerIT {
   public void clean() {
     resourceEdgeRepository.deleteAll();
     resourceRepo.deleteAll();
+    searchIndexTopicListener.getMessages().clear();
   }
 
   @Test
-  void shouldConsumeInstanceCreatedEventFromDataImport() {
+  void shouldProcessInstanceCreatedEventFromDataImport() {
     // given
     var eventId = "event_id_01";
     var marc = loadResourceAsString("samples/full_marc_sample.jsonl");
@@ -109,6 +117,8 @@ class DataImportEventListenerIT {
       assertThat(edge.getTarget()).isNotNull();
       assertThat(edge.getPredicate()).isNotNull();
     });
+
+    assertWorkIsIndexed(result);
   }
 
   @Test
@@ -152,5 +162,24 @@ class DataImportEventListenerIT {
         .allMatch(edge -> Objects.nonNull(edge.getTarget()))
         .allMatch(edge -> Objects.nonNull(edge.getPredicate()))
       );
+  }
+
+  private void assertWorkIsIndexed(Resource result) {
+    var workIdOptional = result.getOutgoingEdges()
+      .stream()
+      .filter(edge -> edge.getPredicate().getUri().equals("http://bibfra.me/vocab/lite/instantiates"))
+      .map(ResourceEdge::getTarget)
+      .map(Resource::getId)
+      .findFirst();
+
+    assertThat(workIdOptional).isPresent();
+    checkSearchIndexMessage(Long.valueOf(workIdOptional.get()), CREATE);
+  }
+
+  private void checkSearchIndexMessage(Long id, ResourceIndexEventType eventType) {
+    awaitAndAssert(() ->
+      assertTrue(searchIndexTopicListener.getMessages().stream().anyMatch(m -> m.contains(id.toString())
+        && m.contains(eventType.getValue())))
+    );
   }
 }

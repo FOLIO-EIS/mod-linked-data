@@ -1,6 +1,7 @@
 package org.folio.linked.data.integration;
 
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
 import static org.folio.linked.data.util.BibframeUtils.extractInstances;
 import static org.folio.linked.data.util.BibframeUtils.extractWork;
@@ -74,7 +75,13 @@ public class ResourceModificationEventListener {
   }
 
   private void sendToInventory(Resource resource) {
-    extractInstances(resource).forEach(kafkaInventorySender::sendInstanceCreated);
+    extractInstances(resource)
+      .stream()
+      .filter(this::isNotSourcedFromSrs)
+      .forEach(kafkaInventorySender::sendInstanceCreated);
   }
 
+  private boolean isNotSourcedFromSrs(Resource resource) {
+    return isNull(resource.getInventoryId()) && isNull(resource.getSrsId());
+  }
 }

@@ -583,8 +583,6 @@ class ResourceControllerIT {
       .andExpect(jsonPath(toVariantTitleType(instanceBase), equalTo(List.of("Variant: variantType"))));
     if (instanceBase.equals(toInstance())) {
       resultActions
-        .andExpect(jsonPath(toInventoryId(), equalTo("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1")))
-        .andExpect(jsonPath(toSrsId(), equalTo("43d58061-decf-4d74-9747-0e1c368e861b")))
         .andExpect(jsonPath(toSupplementaryContentLink(), equalTo("supplementaryContent link")))
         .andExpect(jsonPath(toSupplementaryContentName(), equalTo("supplementaryContent name")))
         .andExpect(jsonPath(toAccessLocationLink(), equalTo("accessLocation value")))
@@ -735,8 +733,6 @@ class ResourceControllerIT {
     assertThat(instance.getId()).isNotNull();
     assertThat(instance.getLabel()).isEqualTo("Primary: mainTitle");
     assertThat(instance.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
-    assertThat(instance.getInventoryId()).hasToString("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1");
-    assertThat(instance.getSrsId()).hasToString("43d58061-decf-4d74-9747-0e1c368e861b");
     assertThat(instance.getDoc().size()).isEqualTo(20);
     validateLiteral(instance, DIMENSIONS.getValue(), "20 cm");
     validateLiteral(instance, EDITION_STATEMENT.getValue(), "edition statement");

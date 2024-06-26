@@ -1,8 +1,11 @@
 package org.folio.linked.data.integration;
 
+import static java.util.UUID.randomUUID;
+import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
 import static org.folio.linked.data.test.TestUtil.randomLong;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.folio.linked.data.integration.kafka.sender.inventory.KafkaInventorySender;
@@ -44,6 +47,38 @@ class ResourceModificationEventListenerTest {
 
     //then
     verify(kafkaSearchSender).sendSingleResourceCreated(resource);
+  }
+
+  @Test
+  void afterCreate_shouldCall_sendToInventory_ifNotSourcedFromSrs() {
+    var resource = new Resource()
+      .setId(1L)
+      .setSrsId(null)
+      .setInventoryId(null)
+      .addTypes(INSTANCE);
+    when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
+
+    //when
+    resourceModificationEventListener.afterCreate(new ResourceCreatedEvent(resource.getId()));
+
+    //then
+    verify(kafkaInventorySender).sendInstanceCreated(resource);
+  }
+
+  @Test
+  void afterCreate_shouldNotCall_sendToInventory_ifSourcedFromSrs() {
+    var resource = new Resource()
+      .setId(1L)
+      .setSrsId(randomUUID())
+      .setInventoryId(randomUUID())
+      .addTypes(INSTANCE);
+    when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
+
+    //when
+    resourceModificationEventListener.afterCreate(new ResourceCreatedEvent(resource.getId()));
+
+    //then
+    verifyNoInteractions(kafkaInventorySender);
   }
 
   @Test

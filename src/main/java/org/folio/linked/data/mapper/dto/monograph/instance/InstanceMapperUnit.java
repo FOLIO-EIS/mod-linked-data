@@ -91,8 +91,6 @@ public class InstanceMapperUnit extends TopResourceMapperUnit {
     instance.addTypes(INSTANCE);
     instance.setDoc(getDoc(instanceDto));
     instance.setLabel(getFirstValue(() -> getPrimaryMainTitles(instanceDto.getTitle())));
-    instance.setInventoryId(instanceDto.getInventoryId());
-    instance.setSrsId(instanceDto.getSrsId());
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getTitle(), TITLE);
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getProduction(), PE_PRODUCTION);
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getPublication(), PE_PUBLICATION);

@@ -18,7 +18,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.folio.linked.data.domain.dto.InstanceField;
 import org.folio.linked.data.domain.dto.ResourceGraphDto;
 import org.folio.linked.data.domain.dto.ResourceMarcViewDto;
 import org.folio.linked.data.domain.dto.ResourceRequestDto;
@@ -89,13 +88,12 @@ public class ResourceServiceImpl implements ResourceService {
   @Override
   public ResourceResponseDto updateResource(Long id, ResourceRequestDto resourceDto) {
     log.info("updateResource [{}] from DTO [{}]", id, resourceDto);
-    var old = getResource(id);
-    addInternalFields(resourceDto, old);
-    var oldWork = extractWork(old).map(Resource::new).orElse(null);
-    breakCircularEdges(old);
-    resourceRepo.delete(old);
-    var mapped = resourceDtoMapper.toEntity(resourceDto);
-    var persisted = saveMergingGraph(mapped);
+    var oldResource = getResource(id);
+    var oldWork = extractWork(oldResource).map(Resource::new).orElse(null);
+    breakCircularEdges(oldResource);
+    resourceRepo.delete(oldResource);
+    var newResource = toNewResource(resourceDto, oldResource);
+    var persisted = saveMergingGraph(newResource);
     if (persisted.isOfType(WORK)) {
       applicationEventPublisher.publishEvent(new ResourceUpdatedEvent(persisted, oldWork));
     } else {
@@ -179,12 +177,6 @@ public class ResourceServiceImpl implements ResourceService {
     applicationEventPublisher.publishEvent(new ResourceUpdatedEvent(oldWork, null));
   }
 
-  private void addInternalFields(ResourceRequestDto resourceDto, Resource old) {
-    if (resourceDto.getResource() instanceof InstanceField instanceField) {
-      ofNullable(old.getInventoryId()).ifPresent(instanceField.getInstance()::setInventoryId);
-      ofNullable(old.getSrsId()).ifPresent(instanceField.getInstance()::setSrsId);
-    }
-  }
 
   @Override
   public void deleteResource(Long id) {
@@ -287,5 +279,18 @@ public class ResourceServiceImpl implements ResourceService {
   private Resource getResource(Long id) {
     return resourceRepo.findById(id)
       .orElseThrow(() -> new NotFoundException(RESOURCE_WITH_GIVEN_ID + id + IS_NOT_FOUND));
+  }
+
+  private Resource toNewResource(ResourceRequestDto resourceDto, Resource old) {
+    var mapped = resourceDtoMapper.toEntity(resourceDto);
+    return addInternalFields(old, mapped);
+  }
+
+  private Resource addInternalFields(Resource oldResource, Resource newResource) {
+    if (newResource.isOfType(INSTANCE)) {
+      ofNullable(oldResource.getInventoryId()).ifPresent(newResource::setInventoryId);
+      ofNullable(oldResource.getSrsId()).ifPresent(newResource::setSrsId);
+    }
+    return newResource;
   }
 }
