@@ -63,7 +63,7 @@ public class ResourceServiceImpl implements ResourceService {
   @Override
   public ResourceResponseDto createResource(ResourceRequestDto resourceDto) {
     var mapped = resourceDtoMapper.toEntity(resourceDto);
-    log.info("createResource\n[{}]\nfrom Marva DTO [{}]", mapped, resourceDto);
+    log.info("createResource\n[{}]\nfrom DTO [{}]", mapped, resourceDto);
     saveMergingGraph(mapped);
     applicationEventPublisher.publishEvent(new ResourceCreatedEvent(mapped.getId()));
     return resourceDtoMapper.toDto(mapped);
@@ -90,16 +90,14 @@ public class ResourceServiceImpl implements ResourceService {
     log.info("updateResource [{}] from DTO [{}]", id, resourceDto);
     var oldResource = getResource(id);
     var oldWork = extractWork(oldResource).map(Resource::new).orElse(null);
-    breakCircularEdges(oldResource);
-    resourceRepo.delete(oldResource);
-    var newResource = toNewResource(resourceDto, oldResource);
-    var persisted = saveMergingGraph(newResource);
-    if (persisted.isOfType(WORK)) {
-      applicationEventPublisher.publishEvent(new ResourceUpdatedEvent(persisted, oldWork));
+    breakEdgesAndDelete(oldResource);
+    var newResource = saveNewResource(resourceDto, oldResource);
+    if (newResource.isOfType(WORK)) {
+      applicationEventPublisher.publishEvent(new ResourceUpdatedEvent(newResource, oldWork));
     } else {
-      reindexParentWorkAfterInstanceUpdate(persisted, oldWork);
+      reindexParentWorkAfterInstanceUpdate(newResource, oldWork);
     }
-    return resourceDtoMapper.toDto(persisted);
+    return resourceDtoMapper.toDto(newResource);
   }
 
   @Override
@@ -183,8 +181,7 @@ public class ResourceServiceImpl implements ResourceService {
     log.info("deleteResource [{}]", id);
     resourceRepo.findById(id).ifPresent(resource -> {
       var oldWork = extractWork(resource).map(Resource::new).orElse(null);
-      breakCircularEdges(resource);
-      resourceRepo.delete(resource);
+      breakEdgesAndDelete(resource);
       if (resource.isOfType(WORK)) {
         applicationEventPublisher.publishEvent(new ResourceDeletedEvent(resource));
       } else {
@@ -281,16 +278,21 @@ public class ResourceServiceImpl implements ResourceService {
       .orElseThrow(() -> new NotFoundException(RESOURCE_WITH_GIVEN_ID + id + IS_NOT_FOUND));
   }
 
-  private Resource toNewResource(ResourceRequestDto resourceDto, Resource old) {
+  private Resource saveNewResource(ResourceRequestDto resourceDto, Resource old) {
     var mapped = resourceDtoMapper.toEntity(resourceDto);
-    return addInternalFields(old, mapped);
+    addInternalFields(old, mapped);
+    return saveMergingGraph(mapped);
   }
 
-  private Resource addInternalFields(Resource oldResource, Resource newResource) {
+  private void addInternalFields(Resource oldResource, Resource newResource) {
     if (newResource.isOfType(INSTANCE)) {
       ofNullable(oldResource.getInventoryId()).ifPresent(newResource::setInventoryId);
       ofNullable(oldResource.getSrsId()).ifPresent(newResource::setSrsId);
     }
-    return newResource;
+  }
+
+  private void breakEdgesAndDelete(Resource resource) {
+    breakCircularEdges(resource);
+    resourceRepo.delete(resource);
   }
 }

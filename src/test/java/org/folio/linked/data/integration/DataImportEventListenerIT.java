@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.CONCEPT;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.PERSON;
+import static org.folio.linked.data.model.entity.ResourceSource.MARC;
 import static org.folio.linked.data.test.TestUtil.FOLIO_TEST_PROFILE;
 import static org.folio.linked.data.test.TestUtil.TENANT_ID;
 import static org.folio.linked.data.test.TestUtil.awaitAndAssert;
@@ -17,6 +18,7 @@ import static org.folio.spring.tools.config.properties.FolioEnvironment.getFolio
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Objects;
 import java.util.Set;
@@ -30,12 +32,14 @@ import org.folio.linked.data.repo.ResourceRepository;
 import org.folio.linked.data.service.impl.tenant.TenantScopedExecutionService;
 import org.folio.linked.data.test.kafka.KafkaSearchIndexTopicListener;
 import org.folio.search.domain.dto.DataImportEvent;
-import org.folio.search.domain.dto.ResourceIndexEventType;
+import org.folio.search.domain.dto.InstanceIngressEvent;
+import org.folio.spring.tools.kafka.FolioMessageProducer;
 import org.folio.spring.tools.kafka.KafkaAdminService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -61,6 +65,8 @@ class DataImportEventListenerIT {
   private TenantScopedExecutionService tenantScopedExecutionService;
   @Autowired
   private KafkaSearchIndexTopicListener searchIndexTopicListener;
+  @MockBean
+  private FolioMessageProducer<InstanceIngressEvent> instanceIngressMessageProducer;
 
   @BeforeAll
   static void beforeAll(@Autowired KafkaAdminService kafkaAdminService) {
@@ -112,6 +118,7 @@ class DataImportEventListenerIT {
     assertThat(result.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
     assertThat(result.getDoc()).isNotEmpty();
     assertThat(result.getOutgoingEdges()).isNotEmpty();
+    assertThat(result.getSource()).isEqualTo(MARC);
     result.getOutgoingEdges().forEach(edge -> {
       assertThat(edge.getSource()).isEqualTo(result);
       assertThat(edge.getTarget()).isNotNull();
@@ -119,6 +126,7 @@ class DataImportEventListenerIT {
     });
 
     assertWorkIsIndexed(result);
+    verifyNoInteractions(instanceIngressMessageProducer);
   }
 
   @Test
@@ -164,22 +172,20 @@ class DataImportEventListenerIT {
       );
   }
 
-  private void assertWorkIsIndexed(Resource result) {
-    var workIdOptional = result.getOutgoingEdges()
+  private void assertWorkIsIndexed(Resource instance) {
+    var workIdOptional = instance.getOutgoingEdges()
       .stream()
       .filter(edge -> edge.getPredicate().getUri().equals("http://bibfra.me/vocab/lite/instantiates"))
       .map(ResourceEdge::getTarget)
       .map(Resource::getId)
       .findFirst();
-
     assertThat(workIdOptional).isPresent();
-    checkSearchIndexMessage(Long.valueOf(workIdOptional.get()), CREATE);
-  }
-
-  private void checkSearchIndexMessage(Long id, ResourceIndexEventType eventType) {
     awaitAndAssert(() ->
-      assertTrue(searchIndexTopicListener.getMessages().stream().anyMatch(m -> m.contains(id.toString())
-        && m.contains(eventType.getValue())))
+      assertTrue(
+        searchIndexTopicListener.getMessages()
+          .stream()
+          .anyMatch(m -> m.contains(workIdOptional.get().toString()) && m.contains(CREATE.getValue()))
+      )
     );
   }
 }

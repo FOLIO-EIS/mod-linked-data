@@ -1,8 +1,9 @@
 package org.folio.linked.data.integration;
 
-import static java.util.UUID.randomUUID;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
+import static org.folio.linked.data.model.entity.ResourceSource.LINKED_DATA;
+import static org.folio.linked.data.model.entity.ResourceSource.MARC;
 import static org.folio.linked.data.test.TestUtil.randomLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -50,11 +51,11 @@ class ResourceModificationEventListenerTest {
   }
 
   @Test
-  void afterCreate_shouldCall_sendToInventory_ifNotSourcedFromSrs() {
+  void afterCreate_shouldCall_sendToInventory_ifSourcedFromLinkedData() {
+    //given
     var resource = new Resource()
       .setId(1L)
-      .setSrsId(null)
-      .setInventoryId(null)
+      .setSource(LINKED_DATA)
       .addTypes(INSTANCE);
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 
@@ -66,11 +67,11 @@ class ResourceModificationEventListenerTest {
   }
 
   @Test
-  void afterCreate_shouldNotCall_sendToInventory_ifSourcedFromSrs() {
+  void afterCreate_shouldNotCall_sendToInventory_ifNotSourcedFromLinkedData() {
+    //given
     var resource = new Resource()
       .setId(1L)
-      .setSrsId(randomUUID())
-      .setInventoryId(randomUUID())
+      .setSource(MARC)
       .addTypes(INSTANCE);
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 
