@@ -55,7 +55,7 @@ class ResourceModificationEventListenerTest {
     //given
     var resource = new Resource()
       .setId(1L)
-      .setSource(LINKED_DATA)
+      .setInstanceSource(LINKED_DATA)
       .addTypes(INSTANCE);
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 
@@ -71,7 +71,7 @@ class ResourceModificationEventListenerTest {
     //given
     var resource = new Resource()
       .setId(1L)
-      .setSource(MARC)
+      .setInstanceSource(MARC)
       .addTypes(INSTANCE);
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 

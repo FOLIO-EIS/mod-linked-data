@@ -77,7 +77,7 @@ public class ResourceModificationEventListener {
   private void sendToInventory(Resource resource) {
     extractInstances(resource)
       .stream()
-      .filter(r -> r.getSource() == LINKED_DATA)
+      .filter(r -> r.getInstanceSource() == LINKED_DATA)
       .forEach(kafkaInventorySender::sendInstanceCreated);
   }
 }

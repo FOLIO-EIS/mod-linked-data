@@ -1,22 +1,24 @@
 package org.folio.linked.data.model.entity;
 
+import static jakarta.persistence.CascadeType.ALL;
 import static jakarta.persistence.CascadeType.DETACH;
 import static jakarta.persistence.CascadeType.REMOVE;
 import static jakarta.persistence.FetchType.EAGER;
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
+import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PrePersist;
@@ -27,6 +29,8 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -36,9 +40,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.folio.ld.dictionary.ResourceTypeDictionary;
 import org.folio.linked.data.validation.PrimaryTitleConstraint;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
-import org.hibernate.type.SqlTypes;
 import org.springframework.data.domain.Persistable;
 
 @Entity
@@ -62,14 +64,6 @@ public class Resource implements Persistable<Long> {
   @Type(JsonBinaryType.class)
   private JsonNode doc;
 
-  @Enumerated(EnumType.STRING)
-  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  private ResourceSource source;
-
-  private UUID inventoryId;
-
-  private UUID srsId;
-
   private Date indexDate;
 
   @OrderBy
@@ -91,6 +85,10 @@ public class Resource implements Persistable<Long> {
   @OneToMany(mappedBy = "source", cascade = {DETACH, REMOVE}, orphanRemoval = true)
   private Set<ResourceEdge> outgoingEdges;
 
+  @OneToOne(cascade = ALL)
+  @JoinColumn(name = "instance_metadata_id")
+  private InstanceMetadata instanceMetadata;
+
   @Transient
   private boolean managed;
 
@@ -98,8 +96,7 @@ public class Resource implements Persistable<Long> {
     this.id = that.id;
     this.label = that.label;
     this.doc = (JsonNode) ofNullable(that.getDoc()).map(JsonNode::deepCopy).orElse(null);
-    this.inventoryId = that.inventoryId;
-    this.srsId = that.srsId;
+    this.instanceMetadata = that.instanceMetadata;
     this.indexDate = that.indexDate;
     this.types = new LinkedHashSet<>(that.getTypes());
     this.outgoingEdges = ofNullable(that.getOutgoingEdges())
@@ -118,8 +115,7 @@ public class Resource implements Persistable<Long> {
       .setId(that.id)
       .setLabel(that.label)
       .setDoc((JsonNode) ofNullable(that.getDoc()).map(JsonNode::deepCopy).orElse(null))
-      .setInventoryId(that.inventoryId)
-      .setSrsId(that.srsId)
+      .setInstanceMetadata(that.instanceMetadata)
       .setIndexDate(that.indexDate)
       .setTypes(new LinkedHashSet<>(that.getTypes()))
       .setIncomingEdges(new LinkedHashSet<>())
@@ -129,12 +125,6 @@ public class Resource implements Persistable<Long> {
   @Override
   public boolean isNew() {
     return !managed;
-  }
-
-  @PostLoad
-  @PrePersist
-  void markManaged() {
-    this.managed = true;
   }
 
   public Set<ResourceTypeEntity> getTypes() {
@@ -184,4 +174,56 @@ public class Resource implements Persistable<Long> {
     return this;
   }
 
+  public ResourceSource getInstanceSource() {
+    return getInstanceMetadataValue(InstanceMetadata::getSource);
+  }
+
+  public Resource setInstanceSource(ResourceSource source) {
+    setInstanceMetadataValue(im -> im.setSource(source));
+    return this;
+  }
+
+  public UUID getInstanceInventoryId() {
+    return getInstanceMetadataValue(InstanceMetadata::getInventoryId);
+  }
+
+  public Resource setInstanceInventoryId(UUID inventoryId) {
+    setInstanceMetadataValue(im -> im.setInventoryId(inventoryId));
+    return this;
+  }
+
+  public UUID getInstanceSrsId() {
+    return getInstanceMetadataValue(InstanceMetadata::getSrsId);
+  }
+
+  public Resource setInstanceSrsId(UUID srsId) {
+    setInstanceMetadataValue(im -> im.setSrsId(srsId));
+    return this;
+  }
+
+  private void setInstanceMetadataValue(Consumer<InstanceMetadata> instanceMetadataConsumer) {
+    if (isNull(instanceMetadata)) {
+      instanceMetadata = new InstanceMetadata();
+    }
+    instanceMetadataConsumer.accept(instanceMetadata);
+  }
+
+  private <T> T getInstanceMetadataValue(Function<InstanceMetadata, T> getValueFunction) {
+    return ofNullable(instanceMetadata)
+      .map(getValueFunction)
+      .orElse(null);
+  }
+
+  @PostLoad
+  void postLoad() {
+    this.managed = true;
+  }
+
+  @PrePersist
+  void prePersist() {
+    this.managed = true;
+    if (nonNull(instanceMetadata) && !isOfType(INSTANCE)) {
+      throw new IllegalStateException("Instance metadata can be set only for instance resource");
+    }
+  }
 }

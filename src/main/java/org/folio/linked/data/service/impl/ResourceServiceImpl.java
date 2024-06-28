@@ -286,8 +286,8 @@ public class ResourceServiceImpl implements ResourceService {
 
   private void addInternalFields(Resource oldResource, Resource newResource) {
     if (newResource.isOfType(INSTANCE)) {
-      ofNullable(oldResource.getInventoryId()).ifPresent(newResource::setInventoryId);
-      ofNullable(oldResource.getSrsId()).ifPresent(newResource::setSrsId);
+      ofNullable(oldResource.getInstanceInventoryId()).ifPresent(newResource::setInstanceInventoryId);
+      ofNullable(oldResource.getInstanceSrsId()).ifPresent(newResource::setInstanceSrsId);
     }
   }
 

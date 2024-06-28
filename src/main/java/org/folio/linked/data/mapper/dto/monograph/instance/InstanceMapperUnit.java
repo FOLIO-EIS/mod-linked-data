@@ -76,8 +76,8 @@ public class InstanceMapperUnit extends TopResourceMapperUnit {
     if (parentDto instanceof ResourceResponseDto resourceDto) {
       var instance = coreMapper.toDtoWithEdges(source, InstanceResponse.class, false);
       instance.setId(String.valueOf(source.getId()));
-      instance.setInventoryId(source.getInventoryId());
-      instance.setSrsId(source.getSrsId());
+      instance.setInventoryId(source.getInstanceInventoryId());
+      instance.setSrsId(source.getInstanceSrsId());
       ofNullable(source.getDoc())
         .ifPresent(doc -> instance.setNotes(noteMapper.toNotes(doc, SUPPORTED_NOTES)));
       resourceDto.resource(new InstanceResponseField().instance(instance));
@@ -105,7 +105,7 @@ public class InstanceMapperUnit extends TopResourceMapperUnit {
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getCarrier(), CARRIER);
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getCopyright(), COPYRIGHT);
     coreMapper.addOutgoingEdges(instance, InstanceRequest.class, instanceDto.getWorkReference(), INSTANTIATES);
-    instance.setSource(LINKED_DATA);
+    instance.setInstanceSource(LINKED_DATA);
     instance.setId(hashService.hash(instance));
     return instance;
   }
