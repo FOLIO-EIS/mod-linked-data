@@ -22,6 +22,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import java.util.Arrays;
@@ -85,8 +86,8 @@ public class Resource implements Persistable<Long> {
   @OneToMany(mappedBy = "source", cascade = {DETACH, REMOVE}, orphanRemoval = true)
   private Set<ResourceEdge> outgoingEdges;
 
-  @OneToOne(cascade = ALL)
-  @JoinColumn(name = "instance_metadata_id")
+  @OneToOne(cascade = ALL, mappedBy = "resource")
+  @PrimaryKeyJoinColumn
   private InstanceMetadata instanceMetadata;
 
   @Transient
@@ -115,7 +116,6 @@ public class Resource implements Persistable<Long> {
       .setId(that.id)
       .setLabel(that.label)
       .setDoc((JsonNode) ofNullable(that.getDoc()).map(JsonNode::deepCopy).orElse(null))
-      .setInstanceMetadata(that.instanceMetadata)
       .setIndexDate(that.indexDate)
       .setTypes(new LinkedHashSet<>(that.getTypes()))
       .setIncomingEdges(new LinkedHashSet<>())
@@ -203,7 +203,7 @@ public class Resource implements Persistable<Long> {
 
   private void setInstanceMetadataValue(Consumer<InstanceMetadata> instanceMetadataConsumer) {
     if (isNull(instanceMetadata)) {
-      instanceMetadata = new InstanceMetadata();
+      instanceMetadata = new InstanceMetadata().setResource(this);
     }
     instanceMetadataConsumer.accept(instanceMetadata);
   }

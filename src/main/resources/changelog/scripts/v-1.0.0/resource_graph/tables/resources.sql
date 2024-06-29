@@ -9,9 +9,7 @@ CREATE TABLE if not exists resources (
   created_event_id bigint null,
   updated_event_id bigint null,
   active_event_id bigint null,
-  instance_metadata_id integer null,
-  index_date timestamp,
-  foreign key (instance_metadata_id) REFERENCES instance_metadata(id)
+  index_date timestamp
 ) partition by hash(resource_hash);
 
 comment on table resources is 'All resources in a graph and their non-link data';
@@ -21,7 +19,6 @@ comment on column resources.label is 'Descriptive label for the resource';
 comment on column resources.created_event_id is 'The event that created the resource';
 comment on column resources.updated_event_id is 'The latest event that updated the resource';
 comment on column resources.active_event_id is 'The event that indicates if the resource is active';
-comment on column resources.instance_metadata_id is 'Applicable only for Instance resources. ID of the instance metadata.';
 comment on column resources.index_date is 'The date this resource was indexed to OpenSearch';
 
 --rollback drop table if exists resources;

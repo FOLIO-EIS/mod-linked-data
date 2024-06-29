@@ -213,7 +213,8 @@ class ResourceControllerIT {
 
   @BeforeEach
   public void beforeEach() {
-    JdbcTestUtils.deleteFromTables(jdbcTemplate, "resource_edges", "resource_type_map", "resources");
+    JdbcTestUtils.deleteFromTables(jdbcTemplate, "instance_metadata", "resource_edges",
+      "resource_type_map", "resources");
     lookupResources = saveLookupResources();
   }
 
