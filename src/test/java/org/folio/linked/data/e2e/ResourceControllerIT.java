@@ -240,7 +240,7 @@ class ResourceControllerIT {
     var resourceResponse = OBJECT_MAPPER.readValue(response, ResourceResponseDto.class);
     var instanceResponse = ((InstanceResponseField) resourceResponse.getResource()).getInstance();
     var instanceResource = resourceTestService.getResourceById(instanceResponse.getId(), 3);
-    assertThat(instanceResource.getInstanceSource()).isEqualTo(LINKED_DATA);
+    assertThat(instanceResource.getInstanceMetadata().getSource()).isEqualTo(LINKED_DATA);
     validateInstance(instanceResource, true);
     var workId = instanceResponse.getWorkReference().get(0).getId();
     checkSearchIndexMessage(Long.valueOf(workId), CREATE);
@@ -311,10 +311,15 @@ class ResourceControllerIT {
     assertThat(updatedInstance.getId()).isNotNull();
     assertThat(updatedInstance.getLabel()).isEqualTo(originalInstance.getLabel());
     assertThat(updatedInstance.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
-    assertThat(updatedInstance.getInstanceInventoryId()).isEqualTo(originalInstance.getInstanceInventoryId());
-    assertThat(updatedInstance.getInstanceSrsId()).isEqualTo(originalInstance.getInstanceSrsId());
     assertThat(updatedInstance.getDoc().get(DIMENSIONS.getValue()).get(0).asText()).isEqualTo("200 m");
     assertThat(updatedInstance.getOutgoingEdges()).hasSize(originalInstance.getOutgoingEdges().size());
+
+    var updatedInstanceMetadata = updatedInstance.getInstanceMetadata();
+    var originalInstanceMetadata = originalInstance.getInstanceMetadata();
+    assertThat(updatedInstanceMetadata.getInventoryId()).isEqualTo(originalInstanceMetadata.getInventoryId());
+    assertThat(updatedInstanceMetadata.getSrsId()).isEqualTo(originalInstanceMetadata.getSrsId());
+    assertThat(updatedInstanceMetadata.getSource()).isEqualTo(LINKED_DATA);
+
     checkSearchIndexMessage(work.getId(), UPDATE);
     checkIndexDate(work.getId().toString());
   }

@@ -1,6 +1,7 @@
 package org.folio.linked.data.integration;
 
 import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
 import static org.folio.linked.data.model.entity.ResourceSource.LINKED_DATA;
 import static org.folio.linked.data.util.BibframeUtils.extractInstances;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.folio.linked.data.integration.kafka.sender.inventory.KafkaInventorySender;
 import org.folio.linked.data.integration.kafka.sender.search.KafkaSearchSender;
+import org.folio.linked.data.model.entity.InstanceMetadata;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.event.ResourceCreatedEvent;
 import org.folio.linked.data.model.entity.event.ResourceDeletedEvent;
@@ -77,7 +79,14 @@ public class ResourceModificationEventListener {
   private void sendToInventory(Resource resource) {
     extractInstances(resource)
       .stream()
-      .filter(r -> r.getInstanceSource() == LINKED_DATA)
+      .filter(this::isSourcedFromLinkedData)
       .forEach(kafkaInventorySender::sendInstanceCreated);
+  }
+
+  public boolean isSourcedFromLinkedData(Resource resource) {
+    return ofNullable(resource.getInstanceMetadata())
+      .map(InstanceMetadata::getSource)
+      .map(source -> source == LINKED_DATA)
+      .orElse(false);
   }
 }

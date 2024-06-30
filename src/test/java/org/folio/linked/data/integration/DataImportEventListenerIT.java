@@ -113,12 +113,15 @@ class DataImportEventListenerIT {
     assertThat(found).isPresent();
     var result = found.get();
     assertThat(result.getLabel()).isEqualTo("Instance MainTitle");
-    assertThat(result.getInstanceInventoryId()).hasToString("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1");
-    assertThat(result.getInstanceSrsId()).hasToString("43d58061-decf-4d74-9747-0e1c368e861b");
     assertThat(result.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
     assertThat(result.getDoc()).isNotEmpty();
     assertThat(result.getOutgoingEdges()).isNotEmpty();
-    assertThat(result.getInstanceSource()).isEqualTo(MARC);
+
+    var instanceMetadata = result.getInstanceMetadata();
+    assertThat(instanceMetadata.getSource()).isEqualTo(MARC);
+    assertThat(instanceMetadata.getInventoryId()).hasToString("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1");
+    assertThat(instanceMetadata.getSrsId()).hasToString("43d58061-decf-4d74-9747-0e1c368e861b");
+
     result.getOutgoingEdges().forEach(edge -> {
       assertThat(edge.getSource()).isEqualTo(result);
       assertThat(edge.getTarget()).isNotNull();

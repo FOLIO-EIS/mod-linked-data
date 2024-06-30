@@ -1,5 +1,7 @@
 package org.folio.linked.data.model.entity;
 
+import static lombok.AccessLevel.PROTECTED;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,7 +22,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Data
-@NoArgsConstructor
+@NoArgsConstructor(access = PROTECTED)
 @Accessors(chain = true)
 @Table(name = "instance_metadata")
 @EqualsAndHashCode(of = "id")
@@ -46,4 +48,8 @@ public class InstanceMetadata {
   @JoinColumn(name = "resource_hash")
   @ToString.Exclude
   private Resource resource;
+
+  public InstanceMetadata(Resource resource) {
+    this.resource = resource;
+  }
 }

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import org.folio.linked.data.integration.kafka.sender.inventory.KafkaInventorySender;
 import org.folio.linked.data.integration.kafka.sender.search.KafkaSearchSender;
+import org.folio.linked.data.model.entity.InstanceMetadata;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.event.ResourceCreatedEvent;
 import org.folio.linked.data.model.entity.event.ResourceDeletedEvent;
@@ -55,8 +56,8 @@ class ResourceModificationEventListenerTest {
     //given
     var resource = new Resource()
       .setId(1L)
-      .setInstanceSource(LINKED_DATA)
       .addTypes(INSTANCE);
+    resource.setInstanceMetadata(new InstanceMetadata(resource).setSource(LINKED_DATA));
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 
     //when
@@ -71,8 +72,8 @@ class ResourceModificationEventListenerTest {
     //given
     var resource = new Resource()
       .setId(1L)
-      .setInstanceSource(MARC)
       .addTypes(INSTANCE);
+    resource.setInstanceMetadata(new InstanceMetadata(resource).setSource(MARC));
     when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
 
     //when

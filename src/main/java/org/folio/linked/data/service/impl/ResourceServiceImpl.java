@@ -8,6 +8,7 @@ import static org.apache.commons.lang3.ObjectUtils.notEqual;
 import static org.folio.ld.dictionary.PredicateDictionary.INSTANTIATES;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
+import static org.folio.linked.data.model.entity.ResourceSource.LINKED_DATA;
 import static org.folio.linked.data.util.BibframeUtils.extractWork;
 import static org.folio.linked.data.util.Constants.IS_NOT_FOUND;
 import static org.folio.linked.data.util.Constants.NOT_INDEXED;
@@ -27,6 +28,7 @@ import org.folio.linked.data.exception.NotFoundException;
 import org.folio.linked.data.exception.ValidationException;
 import org.folio.linked.data.mapper.ResourceModelMapper;
 import org.folio.linked.data.mapper.dto.ResourceDtoMapper;
+import org.folio.linked.data.model.entity.InstanceMetadata;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.ResourceEdge;
 import org.folio.linked.data.model.entity.ResourceTypeEntity;
@@ -286,8 +288,13 @@ public class ResourceServiceImpl implements ResourceService {
 
   private void addInternalFields(Resource oldResource, Resource newResource) {
     if (newResource.isOfType(INSTANCE)) {
-      ofNullable(oldResource.getInstanceInventoryId()).ifPresent(newResource::setInstanceInventoryId);
-      ofNullable(oldResource.getInstanceSrsId()).ifPresent(newResource::setInstanceSrsId);
+      var oldResourceInstanceMetadata = ofNullable(oldResource.getInstanceMetadata())
+        .orElse(new InstanceMetadata(oldResource));
+      var instanceMetadata = new InstanceMetadata(newResource)
+        .setSource(LINKED_DATA)
+        .setInventoryId(oldResourceInstanceMetadata.getInventoryId())
+        .setSrsId(oldResourceInstanceMetadata.getSrsId());
+      newResource.setInstanceMetadata(instanceMetadata);
     }
   }
 

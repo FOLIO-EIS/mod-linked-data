@@ -30,7 +30,6 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -174,38 +173,12 @@ public class Resource implements Persistable<Long> {
     return this;
   }
 
-  public ResourceSource getInstanceSource() {
-    return getInstanceMetadataValue(InstanceMetadata::getSource);
-  }
-
-  public Resource setInstanceSource(ResourceSource source) {
-    setInstanceMetadataValue(im -> im.setSource(source));
-    return this;
-  }
-
   public UUID getInstanceInventoryId() {
     return getInstanceMetadataValue(InstanceMetadata::getInventoryId);
   }
 
-  public Resource setInstanceInventoryId(UUID inventoryId) {
-    setInstanceMetadataValue(im -> im.setInventoryId(inventoryId));
-    return this;
-  }
-
   public UUID getInstanceSrsId() {
     return getInstanceMetadataValue(InstanceMetadata::getSrsId);
-  }
-
-  public Resource setInstanceSrsId(UUID srsId) {
-    setInstanceMetadataValue(im -> im.setSrsId(srsId));
-    return this;
-  }
-
-  private void setInstanceMetadataValue(Consumer<InstanceMetadata> instanceMetadataConsumer) {
-    if (isNull(instanceMetadata)) {
-      instanceMetadata = new InstanceMetadata().setResource(this);
-    }
-    instanceMetadataConsumer.accept(instanceMetadata);
   }
 
   private <T> T getInstanceMetadataValue(Function<InstanceMetadata, T> getValueFunction) {
