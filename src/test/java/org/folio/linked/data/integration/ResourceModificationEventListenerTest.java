@@ -1,12 +1,17 @@
 package org.folio.linked.data.integration;
 
+import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
+import static org.folio.linked.data.model.entity.ResourceSource.LINKED_DATA;
+import static org.folio.linked.data.model.entity.ResourceSource.MARC;
 import static org.folio.linked.data.test.TestUtil.randomLong;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.folio.linked.data.integration.kafka.sender.inventory.KafkaInventorySender;
 import org.folio.linked.data.integration.kafka.sender.search.KafkaSearchSender;
+import org.folio.linked.data.model.entity.InstanceMetadata;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.event.ResourceCreatedEvent;
 import org.folio.linked.data.model.entity.event.ResourceDeletedEvent;
@@ -44,6 +49,38 @@ class ResourceModificationEventListenerTest {
 
     //then
     verify(kafkaSearchSender).sendSingleResourceCreated(resource);
+  }
+
+  @Test
+  void afterCreate_shouldCall_sendToInventory_ifSourcedFromLinkedData() {
+    //given
+    var resource = new Resource()
+      .setId(1L)
+      .addTypes(INSTANCE);
+    resource.setInstanceMetadata(new InstanceMetadata(resource).setSource(LINKED_DATA));
+    when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
+
+    //when
+    resourceModificationEventListener.afterCreate(new ResourceCreatedEvent(resource.getId()));
+
+    //then
+    verify(kafkaInventorySender).sendInstanceCreated(resource);
+  }
+
+  @Test
+  void afterCreate_shouldNotCall_sendToInventory_ifNotSourcedFromLinkedData() {
+    //given
+    var resource = new Resource()
+      .setId(1L)
+      .addTypes(INSTANCE);
+    resource.setInstanceMetadata(new InstanceMetadata(resource).setSource(MARC));
+    when(resourceRepository.getReferenceById(1L)).thenReturn(resource);
+
+    //when
+    resourceModificationEventListener.afterCreate(new ResourceCreatedEvent(resource.getId()));
+
+    //then
+    verifyNoInteractions(kafkaInventorySender);
   }
 
   @Test

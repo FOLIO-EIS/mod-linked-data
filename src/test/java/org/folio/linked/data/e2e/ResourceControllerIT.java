@@ -112,6 +112,7 @@ import static org.folio.ld.dictionary.ResourceTypeDictionary.PROVIDER_EVENT;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.VARIANT_TITLE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
 import static org.folio.linked.data.model.ErrorCode.NOT_FOUND_ERROR;
+import static org.folio.linked.data.model.entity.ResourceSource.LINKED_DATA;
 import static org.folio.linked.data.test.MonographTestUtil.getSampleInstanceResource;
 import static org.folio.linked.data.test.MonographTestUtil.getSampleWork;
 import static org.folio.linked.data.test.TestUtil.INSTANCE_WITH_WORK_REF_SAMPLE;
@@ -212,7 +213,8 @@ class ResourceControllerIT {
 
   @BeforeEach
   public void beforeEach() {
-    JdbcTestUtils.deleteFromTables(jdbcTemplate, "resource_edges", "resource_type_map", "resources");
+    JdbcTestUtils.deleteFromTables(jdbcTemplate, "instance_metadata", "resource_edges",
+      "resource_type_map", "resources");
     lookupResources = saveLookupResources();
   }
 
@@ -238,6 +240,7 @@ class ResourceControllerIT {
     var resourceResponse = OBJECT_MAPPER.readValue(response, ResourceResponseDto.class);
     var instanceResponse = ((InstanceResponseField) resourceResponse.getResource()).getInstance();
     var instanceResource = resourceTestService.getResourceById(instanceResponse.getId(), 3);
+    assertThat(instanceResource.getInstanceMetadata().getSource()).isEqualTo(LINKED_DATA);
     validateInstance(instanceResource, true);
     var workId = instanceResponse.getWorkReference().get(0).getId();
     checkSearchIndexMessage(Long.valueOf(workId), CREATE);
@@ -303,15 +306,27 @@ class ResourceControllerIT {
       .andExpect(jsonPath(toInstance(), notNullValue()))
       .andReturn().getResponse().getContentAsString();
     var resourceResponse = OBJECT_MAPPER.readValue(response, ResourceResponseDto.class);
-    var instanceId = ((InstanceResponseField) resourceResponse.getResource()).getInstance().getId();
-    var updatedInstance = resourceTestService.getResourceById(instanceId, 1);
+    var instanceDto = ((InstanceResponseField) resourceResponse.getResource()).getInstance();
+    var updatedInstance = resourceTestService.getResourceById(instanceDto.getId(), 1);
     assertThat(updatedInstance.getId()).isNotNull();
     assertThat(updatedInstance.getLabel()).isEqualTo(originalInstance.getLabel());
     assertThat(updatedInstance.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
-    assertThat(updatedInstance.getInventoryId()).isEqualTo(originalInstance.getInventoryId());
-    assertThat(updatedInstance.getSrsId()).isEqualTo(originalInstance.getSrsId());
     assertThat(updatedInstance.getDoc().get(DIMENSIONS.getValue()).get(0).asText()).isEqualTo("200 m");
     assertThat(updatedInstance.getOutgoingEdges()).hasSize(originalInstance.getOutgoingEdges().size());
+
+    var updatedInstanceMetadata = updatedInstance.getInstanceMetadata();
+    var originalInstanceMetadata = originalInstance.getInstanceMetadata();
+    var instanceMetadataDto = instanceDto.getInstanceMetadata();
+    assertThat(updatedInstanceMetadata.getInventoryId())
+      .isEqualTo(instanceMetadataDto.getInventoryId())
+      .isEqualTo(originalInstanceMetadata.getInventoryId());
+    assertThat(updatedInstanceMetadata.getSrsId())
+      .isEqualTo(instanceMetadataDto.getSrsId())
+      .isEqualTo(originalInstanceMetadata.getSrsId());
+    assertThat(updatedInstanceMetadata.getSource().name())
+      .isEqualTo(instanceMetadataDto.getSource().name())
+      .isEqualTo(LINKED_DATA.name());
+
     checkSearchIndexMessage(work.getId(), UPDATE);
     checkIndexDate(work.getId().toString());
   }
@@ -583,8 +598,6 @@ class ResourceControllerIT {
       .andExpect(jsonPath(toVariantTitleType(instanceBase), equalTo(List.of("Variant: variantType"))));
     if (instanceBase.equals(toInstance())) {
       resultActions
-        .andExpect(jsonPath(toInventoryId(), equalTo("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1")))
-        .andExpect(jsonPath(toSrsId(), equalTo("43d58061-decf-4d74-9747-0e1c368e861b")))
         .andExpect(jsonPath(toSupplementaryContentLink(), equalTo("supplementaryContent link")))
         .andExpect(jsonPath(toSupplementaryContentName(), equalTo("supplementaryContent name")))
         .andExpect(jsonPath(toAccessLocationLink(), equalTo("accessLocation value")))
@@ -735,8 +748,6 @@ class ResourceControllerIT {
     assertThat(instance.getId()).isNotNull();
     assertThat(instance.getLabel()).isEqualTo("Primary: mainTitle");
     assertThat(instance.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
-    assertThat(instance.getInventoryId()).hasToString("2165ef4b-001f-46b3-a60e-52bcdeb3d5a1");
-    assertThat(instance.getSrsId()).hasToString("43d58061-decf-4d74-9747-0e1c368e861b");
     assertThat(instance.getDoc().size()).isEqualTo(20);
     validateLiteral(instance, DIMENSIONS.getValue(), "20 cm");
     validateLiteral(instance, EDITION_STATEMENT.getValue(), "edition statement");
