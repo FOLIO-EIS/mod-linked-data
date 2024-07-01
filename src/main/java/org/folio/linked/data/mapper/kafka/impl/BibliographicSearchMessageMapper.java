@@ -12,16 +12,13 @@ import static org.folio.ld.dictionary.PredicateDictionary.CLASSIFICATION;
 import static org.folio.ld.dictionary.PredicateDictionary.CONTRIBUTOR;
 import static org.folio.ld.dictionary.PredicateDictionary.CREATOR;
 import static org.folio.ld.dictionary.PredicateDictionary.INSTANTIATES;
-import static org.folio.ld.dictionary.PredicateDictionary.MAP;
 import static org.folio.ld.dictionary.PredicateDictionary.PE_PUBLICATION;
 import static org.folio.ld.dictionary.PredicateDictionary.SUBJECT;
 import static org.folio.ld.dictionary.PredicateDictionary.TITLE;
 import static org.folio.ld.dictionary.PropertyDictionary.CODE;
 import static org.folio.ld.dictionary.PropertyDictionary.DATE;
-import static org.folio.ld.dictionary.PropertyDictionary.EAN_VALUE;
 import static org.folio.ld.dictionary.PropertyDictionary.EDITION_STATEMENT;
 import static org.folio.ld.dictionary.PropertyDictionary.LANGUAGE;
-import static org.folio.ld.dictionary.PropertyDictionary.LOCAL_ID_VALUE;
 import static org.folio.ld.dictionary.PropertyDictionary.MAIN_TITLE;
 import static org.folio.ld.dictionary.PropertyDictionary.NAME;
 import static org.folio.ld.dictionary.PropertyDictionary.PROVIDER_DATE;
@@ -30,13 +27,13 @@ import static org.folio.ld.dictionary.PropertyDictionary.SUBTITLE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.INSTANCE;
 import static org.folio.ld.dictionary.ResourceTypeDictionary.WORK;
 import static org.folio.linked.data.util.BibframeUtils.cleanDate;
+import static org.folio.linked.data.util.Constants.MSG_UNKNOWN_TYPES;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.MAIN;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.MAIN_PARALLEL;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.MAIN_VARIANT;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.SUB;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.SUB_PARALLEL;
 import static org.folio.search.domain.dto.BibframeIndexTitleType.SUB_VARIANT;
-import static org.folio.search.domain.dto.BibframeInstancesInnerIdentifiersInner.TypeEnum;
 import static org.folio.search.domain.dto.ResourceIndexEventType.DELETE;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,10 +50,10 @@ import lombok.extern.log4j.Log4j2;
 import org.folio.ld.dictionary.PropertyDictionary;
 import org.folio.ld.dictionary.ResourceTypeDictionary;
 import org.folio.ld.dictionary.model.Predicate;
-import org.folio.linked.data.domain.dto.InstanceResponse;
 import org.folio.linked.data.domain.dto.WorkResponse;
 import org.folio.linked.data.exception.LinkedDataServiceException;
 import org.folio.linked.data.mapper.dto.common.SingleResourceMapper;
+import org.folio.linked.data.mapper.kafka.IndexIdentifierMapper;
 import org.folio.linked.data.mapper.kafka.KafkaSearchMessageMapper;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.ResourceEdge;
@@ -80,13 +77,13 @@ import org.springframework.stereotype.Component;
 @Log4j2
 @Component
 @RequiredArgsConstructor
-public class KafkaSearchMessageMapperImpl implements KafkaSearchMessageMapper {
+public class BibliographicSearchMessageMapper implements KafkaSearchMessageMapper<BibframeIndex> {
 
-  private static final String MSG_UNKNOWN_TYPES =
-    "Unknown type(s) [{}] of [{}] was ignored during Resource [workId = {}] conversion to BibframeIndex message";
   private static final String NO_INDEXABLE_WORK_FOUND =
     "No index-able work found for [{}] operation of the resource [{}]";
   private static final String NOT_A_WORK = "Not a Work resource [%s] has been passed to indexation for [%s] operation";
+
+  private final IndexIdentifierMapper<BibframeInstancesInnerIdentifiersInner> innerIndexIdentifierMapper;
   private final SingleResourceMapper singleResourceMapper;
 
   @Override
@@ -242,7 +239,7 @@ public class KafkaSearchMessageMapperImpl implements KafkaSearchMessageMapper {
       .map(ir -> new BibframeInstancesInner()
         .id(String.valueOf(ir.getId()))
         .titles(extractTitles(ir))
-        .identifiers(extractIdentifiers(ir))
+        .identifiers(innerIndexIdentifierMapper.extractIdentifiers(ir))
         .contributors(extractContributors(ir))
         .publications(extractPublications(ir))
         .editionStatements(getPropertyValues(ir.getDoc(), EDITION_STATEMENT.getValue())
@@ -254,27 +251,41 @@ public class KafkaSearchMessageMapperImpl implements KafkaSearchMessageMapper {
       .toList();
   }
 
-  private List<BibframeInstancesInnerIdentifiersInner> extractIdentifiers(Resource resource) {
+  private List<BibframeInstancesInnerPublicationsInner> extractPublications(Resource resource) {
     return resource.getOutgoingEdges().stream()
-      .filter(re -> MAP.getUri().equals(re.getPredicate().getUri()))
+      .filter(re -> PE_PUBLICATION.getUri().equals(re.getPredicate().getUri()))
       .map(ResourceEdge::getTarget)
-      .map(ir -> new BibframeInstancesInnerIdentifiersInner()
-        .value(getValue(ir.getDoc(), NAME.getValue(), EAN_VALUE.getValue(), LOCAL_ID_VALUE.getValue()))
-        .type(toType(ir, TypeEnum::fromValue, TypeEnum.class, MAP, InstanceResponse.class)))
-      .filter(identifier -> nonNull(identifier.getValue()))
+      .map(ir -> new BibframeInstancesInnerPublicationsInner()
+        .name(getValue(ir.getDoc(), NAME.getValue()))
+        .date(cleanDate(getValue(ir.getDoc(), DATE.getValue(), PROVIDER_DATE.getValue()))))
+      .filter(ip -> nonNull(ip.getName()) || nonNull(ip.getDate()))
       .distinct()
       .toList();
   }
 
-  private <E extends Enum<E>> E toType(Resource resource, Function<String, E> typeSupplier, Class<E> enumClass,
-                                       Predicate predicate, Class<?> parentResponseDto) {
+  private String getValue(JsonNode doc, String... values) {
+    if (nonNull(doc)) {
+      for (String value : values) {
+        if (doc.has(value) && !doc.get(value).isEmpty()) {
+          return doc.get(value).get(0).asText();
+        }
+      }
+    }
+    return null;
+  }
+
+  <E extends Enum<E>> E toType(Resource resource,
+                               Function<String, E> typeSupplier,
+                               Class<E> enumClass,
+                               Predicate predicate,
+                               Class<?> parentDto) {
     if (isNull(resource.getTypes())) {
       return null;
     }
     return resource.getTypes()
       .stream()
       .map(ResourceTypeEntity::getUri)
-      .filter(type -> singleResourceMapper.getMapperUnit(type, predicate, parentResponseDto, null).isPresent())
+      .filter(type -> singleResourceMapper.getMapperUnit(type, predicate, parentDto, null).isPresent())
       .findFirst()
       .map(typeUri -> typeUri.substring(typeUri.lastIndexOf("/") + 1))
       .map(typeUri -> {
@@ -297,28 +308,4 @@ public class KafkaSearchMessageMapperImpl implements KafkaSearchMessageMapper {
   private <E extends Enum<E>> String getTypeEnumNameWithParent(Class<E> enumClass) {
     return enumClass.getName().substring(enumClass.getName().lastIndexOf(".") + 1);
   }
-
-  private String getValue(JsonNode doc, String... values) {
-    if (nonNull(doc)) {
-      for (String value : values) {
-        if (doc.has(value) && !doc.get(value).isEmpty()) {
-          return doc.get(value).get(0).asText();
-        }
-      }
-    }
-    return null;
-  }
-
-  private List<BibframeInstancesInnerPublicationsInner> extractPublications(Resource resource) {
-    return resource.getOutgoingEdges().stream()
-      .filter(re -> PE_PUBLICATION.getUri().equals(re.getPredicate().getUri()))
-      .map(ResourceEdge::getTarget)
-      .map(ir -> new BibframeInstancesInnerPublicationsInner()
-        .name(getValue(ir.getDoc(), NAME.getValue()))
-        .date(cleanDate(getValue(ir.getDoc(), DATE.getValue(), PROVIDER_DATE.getValue()))))
-      .filter(ip -> nonNull(ip.getName()) || nonNull(ip.getDate()))
-      .distinct()
-      .toList();
-  }
-
 }
