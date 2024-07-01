@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -172,20 +171,6 @@ public class Resource implements Persistable<Long> {
     return this;
   }
 
-  public String getInstanceInventoryId() {
-    return getInstanceMetadataValue(InstanceMetadata::getInventoryId);
-  }
-
-  public String getInstanceSrsId() {
-    return getInstanceMetadataValue(InstanceMetadata::getSrsId);
-  }
-
-  private <T> T getInstanceMetadataValue(Function<InstanceMetadata, T> getValueFunction) {
-    return ofNullable(instanceMetadata)
-      .map(getValueFunction)
-      .orElse(null);
-  }
-
   @PostLoad
   void postLoad() {
     this.managed = true;
@@ -195,7 +180,8 @@ public class Resource implements Persistable<Long> {
   void prePersist() {
     this.managed = true;
     if (nonNull(instanceMetadata) && !isOfType(INSTANCE)) {
-      throw new IllegalStateException("Instance metadata can be set only for instance resource");
+      throw new IllegalStateException("Cannot save resource [" + id + "] with types " + types + ". "
+        + "Instance metadata can be set only for instance resource");
     }
   }
 }

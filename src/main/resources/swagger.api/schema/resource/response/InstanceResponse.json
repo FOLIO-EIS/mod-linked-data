@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Instance info",
+  "description": "Instance resource info",
   "allOf": [
     {
       "$ref": "../common/IdField.json"
@@ -209,11 +209,8 @@
             "$ref": "WorkResponse.json"
           }
         },
-        "inventoryId": {
-          "type": "string"
-        },
-        "srsId": {
-          "type": "string"
+        "instanceMetadata": {
+          "$ref": "InstanceMetadata.json"
         }
       }
     }

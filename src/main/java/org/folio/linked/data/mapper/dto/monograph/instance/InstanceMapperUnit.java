@@ -49,6 +49,7 @@ import org.folio.linked.data.domain.dto.InstanceRequest;
 import org.folio.linked.data.domain.dto.InstanceResponse;
 import org.folio.linked.data.domain.dto.InstanceResponseField;
 import org.folio.linked.data.domain.dto.ResourceResponseDto;
+import org.folio.linked.data.mapper.InstanceMetadataMapper;
 import org.folio.linked.data.mapper.dto.common.CoreMapper;
 import org.folio.linked.data.mapper.dto.common.MapperUnit;
 import org.folio.linked.data.mapper.dto.monograph.TopResourceMapperUnit;
@@ -70,6 +71,7 @@ public class InstanceMapperUnit extends TopResourceMapperUnit {
 
   private final CoreMapper coreMapper;
   private final NoteMapper noteMapper;
+  private final InstanceMetadataMapper instanceMetadataMapper;
   private final HashService hashService;
 
   @Override
@@ -77,8 +79,9 @@ public class InstanceMapperUnit extends TopResourceMapperUnit {
     if (parentDto instanceof ResourceResponseDto resourceDto) {
       var instance = coreMapper.toDtoWithEdges(source, InstanceResponse.class, false);
       instance.setId(String.valueOf(source.getId()));
-      instance.setInventoryId(source.getInstanceInventoryId());
-      instance.setSrsId(source.getInstanceSrsId());
+      ofNullable(source.getInstanceMetadata())
+        .map(instanceMetadataMapper::toDto)
+        .ifPresent(instance::setInstanceMetadata);
       ofNullable(source.getDoc())
         .ifPresent(doc -> instance.setNotes(noteMapper.toNotes(doc, SUPPORTED_NOTES)));
       resourceDto.resource(new InstanceResponseField().instance(instance));

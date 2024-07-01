@@ -306,8 +306,8 @@ class ResourceControllerIT {
       .andExpect(jsonPath(toInstance(), notNullValue()))
       .andReturn().getResponse().getContentAsString();
     var resourceResponse = OBJECT_MAPPER.readValue(response, ResourceResponseDto.class);
-    var instanceId = ((InstanceResponseField) resourceResponse.getResource()).getInstance().getId();
-    var updatedInstance = resourceTestService.getResourceById(instanceId, 1);
+    var instanceDto = ((InstanceResponseField) resourceResponse.getResource()).getInstance();
+    var updatedInstance = resourceTestService.getResourceById(instanceDto.getId(), 1);
     assertThat(updatedInstance.getId()).isNotNull();
     assertThat(updatedInstance.getLabel()).isEqualTo(originalInstance.getLabel());
     assertThat(updatedInstance.getTypes().iterator().next().getUri()).isEqualTo(INSTANCE.getUri());
@@ -316,9 +316,16 @@ class ResourceControllerIT {
 
     var updatedInstanceMetadata = updatedInstance.getInstanceMetadata();
     var originalInstanceMetadata = originalInstance.getInstanceMetadata();
-    assertThat(updatedInstanceMetadata.getInventoryId()).isEqualTo(originalInstanceMetadata.getInventoryId());
-    assertThat(updatedInstanceMetadata.getSrsId()).isEqualTo(originalInstanceMetadata.getSrsId());
-    assertThat(updatedInstanceMetadata.getSource()).isEqualTo(LINKED_DATA);
+    var instanceMetadataDto = instanceDto.getInstanceMetadata();
+    assertThat(updatedInstanceMetadata.getInventoryId())
+      .isEqualTo(instanceMetadataDto.getInventoryId())
+      .isEqualTo(originalInstanceMetadata.getInventoryId());
+    assertThat(updatedInstanceMetadata.getSrsId())
+      .isEqualTo(instanceMetadataDto.getSrsId())
+      .isEqualTo(originalInstanceMetadata.getSrsId());
+    assertThat(updatedInstanceMetadata.getSource().name())
+      .isEqualTo(instanceMetadataDto.getSource().name())
+      .isEqualTo(LINKED_DATA.name());
 
     checkSearchIndexMessage(work.getId(), UPDATE);
     checkIndexDate(work.getId().toString());
