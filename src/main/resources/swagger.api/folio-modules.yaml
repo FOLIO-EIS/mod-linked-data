@@ -18,6 +18,8 @@ components:
       $ref: search/resourceIndexEventType.json
     bibframe:
       $ref: search/bibframeIndex.json
+    bibframeAuthority:
+      $ref: search/bibframeAuthorityIndex.json
     dataImportEvent:
       $ref: events/dataImportEvent.json
     inventoryInstanceIngressEvent:

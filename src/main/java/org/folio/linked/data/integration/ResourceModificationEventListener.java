@@ -9,6 +9,8 @@ import static org.folio.linked.data.util.Constants.NOT_INDEXED;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.folio.linked.data.integration.identifier.AuthorityTypeIdentifier;
+import org.folio.linked.data.integration.identifier.BibliographicTypeIdentifier;
 import org.folio.linked.data.integration.kafka.sender.inventory.KafkaInventorySender;
 import org.folio.linked.data.integration.kafka.sender.search.KafkaSearchSender;
 import org.folio.linked.data.model.entity.Resource;
@@ -33,48 +35,59 @@ public class ResourceModificationEventListener {
   private final KafkaSearchSender kafkaSearchSender;
   private final KafkaInventorySender kafkaInventorySender;
   private final ResourceRepository resourceRepository;
+  private final BibliographicTypeIdentifier bibliographicTypeIdentifier;
+  private final AuthorityTypeIdentifier authorityTypeIdentifier;
 
   @TransactionalEventListener
   public void afterCreate(ResourceCreatedEvent resourceCreatedEvent) {
     log.info("ResourceCreatedEvent received [{}]", resourceCreatedEvent);
     var resource = resourceRepository.getReferenceById(resourceCreatedEvent.id());
-    sendToSearch(resource);
-    sendToInventory(resource);
+    if (bibliographicTypeIdentifier.test(resource)) {
+      sendToSearch(resource);
+      sendToInventory(resource);
+    } else if (authorityTypeIdentifier.test(resource)) {
+      sendToAuthoritySearch(resource);
+    } else {
+      log.warn("Unexpected resource: id: [{}] type [{}]", resource.getId(), resource.getTypes());
+    }
   }
 
   @TransactionalEventListener
   public void afterUpdate(ResourceUpdatedEvent resourceUpdatedEvent) {
     log.info("ResourceUpdatedEvent received [{}]", resourceUpdatedEvent);
-    kafkaSearchSender.sendResourceUpdated(resourceUpdatedEvent.newWork(), resourceUpdatedEvent.oldWork());
+    kafkaSearchSender.sendWorkUpdated(resourceUpdatedEvent.newWork(), resourceUpdatedEvent.oldWork());
   }
 
   @TransactionalEventListener
   public void afterDelete(ResourceDeletedEvent resourceDeletedEvent) {
     log.info("ResourceDeletedEvent received [{}]", resourceDeletedEvent);
-    kafkaSearchSender.sendResourceDeleted(resourceDeletedEvent.work());
+    kafkaSearchSender.sendWorkDeleted(resourceDeletedEvent.work());
   }
 
   @EventListener
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void afterIndex(ResourceIndexedEvent resourceIndexedEvent) {
     log.info("ResourceIndexedEvent received [{}]", resourceIndexedEvent);
-    resourceRepository.updateIndexDate(resourceIndexedEvent.workId());
+    resourceRepository.updateIndexDate(resourceIndexedEvent.resourceId());
   }
 
   private void sendToSearch(Resource resource) {
     if (resource.isOfType(WORK)) {
-      kafkaSearchSender.sendSingleResourceCreated(resource);
+      kafkaSearchSender.sendWorkCreated(resource);
     } else {
       extractWork(resource)
         .map(Resource::getId)
         .map(resourceRepository::getReferenceById)
-        .ifPresentOrElse(kafkaSearchSender::sendSingleResourceCreated,
+        .ifPresentOrElse(kafkaSearchSender::sendWorkCreated,
           () -> log.warn(format(NOT_INDEXED, resource.getId(), "created")));
     }
+  }
+
+  private void sendToAuthoritySearch(Resource resource) {
+    kafkaSearchSender.sendAuthorityCreated(resource);
   }
 
   private void sendToInventory(Resource resource) {
     extractInstances(resource).forEach(kafkaInventorySender::sendInstanceCreated);
   }
-
 }
