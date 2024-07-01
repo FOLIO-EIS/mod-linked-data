@@ -210,12 +210,10 @@
           }
         },
         "inventoryId": {
-          "type": "string",
-          "format": "uuid"
+          "type": "string"
         },
         "srsId": {
-          "type": "string",
-          "format": "uuid"
+          "type": "string"
         }
       }
     }

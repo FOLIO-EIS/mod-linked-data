@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -33,10 +32,10 @@ public class InstanceMetadata {
   private Long id;
 
   @Column(name = "inventory_id")
-  private UUID inventoryId;
+  private String inventoryId;
 
   @Column(name = "srs_id")
-  private UUID srsId;
+  private String srsId;
 
   @Column(name = "source")
   @Enumerated(EnumType.STRING)

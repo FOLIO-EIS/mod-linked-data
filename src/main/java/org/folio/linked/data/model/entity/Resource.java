@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Data;
@@ -173,11 +172,11 @@ public class Resource implements Persistable<Long> {
     return this;
   }
 
-  public UUID getInstanceInventoryId() {
+  public String getInstanceInventoryId() {
     return getInstanceMetadataValue(InstanceMetadata::getInventoryId);
   }
 
-  public UUID getInstanceSrsId() {
+  public String getInstanceSrsId() {
     return getInstanceMetadataValue(InstanceMetadata::getSrsId);
   }
 

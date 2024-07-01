@@ -1,8 +1,8 @@
 create table if not exists instance_metadata (
      resource_hash bigint primary key references resources(resource_hash),
-     inventory_id uuid,
-     srs_id uuid,
-     source resource_source
+     inventory_id text null,
+     srs_id text null,
+     source resource_source null
   );
 
 comment on table instance_metadata is 'Metadata for an instance resource';
