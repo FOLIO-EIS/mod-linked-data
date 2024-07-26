@@ -5,6 +5,9 @@ import static org.folio.linked.data.test.TestUtil.OBJECT_MAPPER;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.authorityEvent;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.dataImportEvent;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.instanceCreatedEvent;
+import static org.folio.search.domain.dto.DataImportEventSource.AUTHORITY;
+import static org.folio.search.domain.dto.DataImportEventSource.BIBLIOGRAPHIC;
+import static org.folio.search.domain.dto.DataImportEventSource.EMPTY;
 
 import java.io.IOException;
 import java.util.Map;
@@ -36,8 +39,8 @@ class DataImportEventDeserializerTest {
     // then
     assertThat(eventId).isEqualTo(dataImportEvent.getId());
     assertThat(tenantId).isEqualTo(dataImportEvent.getTenant());
-    assertThat(marc).isEqualTo(dataImportEvent.getMarcBib());
-    assertThat(dataImportEvent.getMarcAuthority()).isNull();
+    assertThat(marc).isEqualTo(dataImportEvent.getPayload());
+    assertThat(dataImportEvent.getEventSource()).isEqualTo(BIBLIOGRAPHIC);
   }
 
   @Test
@@ -61,8 +64,8 @@ class DataImportEventDeserializerTest {
     // then
     assertThat(eventId).isEqualTo(dataImportEvent.getId());
     assertThat(tenantId).isEqualTo(dataImportEvent.getTenant());
-    assertThat(marc).isEqualTo(dataImportEvent.getMarcAuthority());
-    assertThat(dataImportEvent.getMarcBib()).isNull();
+    assertThat(marc).isEqualTo(dataImportEvent.getPayload());
+    assertThat(dataImportEvent.getEventSource()).isEqualTo(AUTHORITY);
   }
 
 
@@ -84,7 +87,7 @@ class DataImportEventDeserializerTest {
     DataImportEvent dataImportEvent = OBJECT_MAPPER.readValue(unsupportedEvent, DataImportEvent.class);
 
     // then
-    assertThat(dataImportEvent.getMarcBib()).isNull();
-    assertThat(dataImportEvent.getMarcAuthority()).isNull();
+    assertThat(dataImportEvent.getPayload()).isNull();
+    assertThat(dataImportEvent.getEventSource()).isEqualTo(EMPTY);
   }
 }

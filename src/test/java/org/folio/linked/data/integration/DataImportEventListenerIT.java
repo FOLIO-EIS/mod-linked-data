@@ -13,6 +13,8 @@ import static org.folio.linked.data.test.TestUtil.loadResourceAsString;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.authorityEvent;
 import static org.folio.linked.data.test.kafka.KafkaEventsTestDataFixture.instanceCreatedEvent;
 import static org.folio.linked.data.util.Constants.FOLIO_PROFILE;
+import static org.folio.search.domain.dto.DataImportEventSource.AUTHORITY;
+import static org.folio.search.domain.dto.DataImportEventSource.BIBLIOGRAPHIC;
 import static org.folio.search.domain.dto.ResourceIndexEventType.UPDATE;
 import static org.folio.spring.tools.config.properties.FolioEnvironment.getFolioEnvName;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,11 +23,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.folio.linked.data.e2e.base.IntegrationTest;
 import org.folio.linked.data.integration.kafka.consumer.DataImportEventHandler;
+import org.folio.linked.data.integration.kafka.consumer.DataImportEventProcessor;
+import org.folio.linked.data.integration.kafka.consumer.impl.BibImportEventProcessor;
 import org.folio.linked.data.model.entity.Resource;
 import org.folio.linked.data.model.entity.ResourceEdge;
 import org.folio.linked.data.repo.ResourceEdgeRepository;
@@ -35,6 +40,7 @@ import org.folio.linked.data.service.impl.tenant.TenantScopedExecutionService;
 import org.folio.linked.data.test.kafka.KafkaSearchAuthorityAuthorityTopicListener;
 import org.folio.linked.data.test.kafka.KafkaSearchWorkIndexTopicListener;
 import org.folio.search.domain.dto.DataImportEvent;
+import org.folio.search.domain.dto.DataImportEventSource;
 import org.folio.search.domain.dto.InstanceIngressEvent;
 import org.folio.spring.tools.kafka.FolioMessageProducer;
 import org.folio.spring.tools.kafka.KafkaAdminService;
@@ -79,6 +85,9 @@ class DataImportEventListenerIT {
   private ResourceService resourceService;
   @MockBean
   private FolioMessageProducer<InstanceIngressEvent> instanceIngressMessageProducer;
+  @Autowired
+  @SpyBean
+  private BibImportEventProcessor bibImportEventProcessor;
 
   @BeforeAll
   static void beforeAll(@Autowired KafkaAdminService kafkaAdminService) {
@@ -113,7 +122,7 @@ class DataImportEventListenerIT {
 
     // then
     awaitAndAssert(() -> verify(dataImportEventHandler).handle(expectedEvent));
-    verify(resourceService, times(interactions)).createResource(any(org.folio.ld.dictionary.model.Resource.class));
+    verify(bibImportEventProcessor, times(interactions)).process(expectedEvent);
   }
 
   @Test
@@ -219,11 +228,11 @@ class DataImportEventListenerIT {
   }
 
   private DataImportEvent newMarcBibDataImportEvent(String marc) {
-    return newDataImportEvent().marcBib(marc);
+    return newDataImportEvent().payload(marc).eventSource(BIBLIOGRAPHIC);
   }
 
   private DataImportEvent newAuthorutyDataImportEvent(String marc) {
-    return newDataImportEvent().marcAuthority(marc);
+    return newDataImportEvent().payload(marc).eventSource(AUTHORITY);
   }
 
   private DataImportEvent newDataImportEvent() {

@@ -14,6 +14,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.folio.linked.data.e2e.base.IntegrationTest;
 import org.folio.linked.data.integration.kafka.consumer.DataImportEventHandler;
 import org.folio.search.domain.dto.DataImportEvent;
+import org.folio.search.domain.dto.DataImportEventSource;
 import org.folio.spring.tools.kafka.KafkaAdminService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -89,7 +90,8 @@ class KafkaMessageListenerIT {
       .id(eventId)
       .tenant(tenantId)
       .eventType("DI_COMPLETED")
-      .marcBib(marc);
+      .eventSource(DataImportEventSource.BIBLIOGRAPHIC)
+      .payload(marc);
   }
 
   private String getTopicName(String tenantId, String topic) {

@@ -1,0 +1,6 @@
+{
+  "type": "string",
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Resource event operation type - one of [bib, authority or empty]",
+  "enum": [ "BIBLIOGRAPHIC", "AUTHORITY", "EMPTY" ]
+}

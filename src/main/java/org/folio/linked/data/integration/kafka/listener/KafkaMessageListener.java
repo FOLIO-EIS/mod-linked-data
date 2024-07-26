@@ -1,6 +1,7 @@
 package org.folio.linked.data.integration.kafka.listener;
 
 import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.logging.log4j.util.Strings.isNotBlank;
 import static org.folio.linked.data.util.Constants.FOLIO_PROFILE;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
@@ -63,10 +64,10 @@ public class KafkaMessageListener {
   }
 
   private void logFailedEvent(DataImportEvent event, Throwable ex, boolean isRetrying) {
-    String marcRecord = isNotBlank(event.getMarcBib()) ? event.getMarcBib() : event.getMarcAuthority();
-    String type = isNotBlank(event.getMarcBib()) ? "Bib" : "Authority";
+    String marcRecord = isNotBlank(event.getPayload()) ? event.getPayload() : EMPTY;
+    String source = event.getEventSource().toString();
     var logLevel = isRetrying ? Level.INFO : Level.ERROR;
-    log.log(logLevel, "Failed to process MARC {} record {}. Retrying: {}", type, marcRecord, isRetrying, ex);
+    log.log(logLevel, "Failed to process MARC {} record {}. Retrying: {}", source, marcRecord, isRetrying, ex);
   }
 
   private boolean isNotContainsRequiredHeaders(Headers headers) {

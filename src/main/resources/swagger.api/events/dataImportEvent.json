@@ -15,13 +15,13 @@
       "description": "Unique Event type, human-readable String, not UUID",
       "type": "string"
     },
-    "marcBib": {
-      "description": "Marc Bib record",
+    "payload": {
+      "description": "Marc record payload",
       "type": "string"
     },
-    "marcAuthority": {
-      "description": "Marc Authority record",
-      "type": "string"
+    "eventSource": {
+      "description": "Resource id",
+      "$ref": "dataImportEventSource.json"
     }
   }
 }
