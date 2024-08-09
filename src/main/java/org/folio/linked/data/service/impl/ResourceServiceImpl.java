@@ -75,12 +75,18 @@ public class ResourceServiceImpl implements ResourceService {
   }
 
   @Override
-  public Long createResource(org.folio.ld.dictionary.model.Resource modelResource) {
+  public Long saveMarcResource(org.folio.ld.dictionary.model.Resource modelResource) {
+    var exists = resourceRepo.existsById(modelResource.getId());
     var mapped = resourceModelMapper.toEntity(modelResource);
     var persisted = saveMergingGraph(mapped);
     refreshWork(persisted);
-    log.info("createResource [{}]\nfrom modelResource [{}]", persisted, modelResource);
-    applicationEventPublisher.publishEvent(new ResourceCreatedEvent(persisted));
+    if (exists) {
+      log.info("Updating resource [id {}] from marc model [{}]", persisted.getId(), modelResource);
+      applicationEventPublisher.publishEvent(new ResourceUpdatedEvent(persisted));
+    } else {
+      log.info("Creating resource [id {}] from marc model [{}]", persisted.getId(), modelResource);
+      applicationEventPublisher.publishEvent(new ResourceCreatedEvent(persisted));
+    }
     return persisted.getId();
   }
 
@@ -93,7 +99,7 @@ public class ResourceServiceImpl implements ResourceService {
 
   @Override
   public ResourceIdDto getResourceIdByInventoryId(String inventoryId) {
-    return instanceMetadataRepo.findByInventoryId(inventoryId)
+    return instanceMetadataRepo.findIdByInventoryId(inventoryId)
       .map(idOnly -> new ResourceIdDto().id(String.valueOf(idOnly.getId())))
       .orElseThrow(() -> new NotFoundException(RESOURCE_WITH_GIVEN_INVENTORY_ID + inventoryId + IS_NOT_FOUND));
   }
