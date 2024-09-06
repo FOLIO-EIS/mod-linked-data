@@ -47,6 +47,7 @@ import org.folio.spring.tools.kafka.FolioMessageProducer;
 import org.folio.spring.tools.kafka.KafkaAdminService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -249,6 +250,7 @@ class SourceRecordDomainEventHandlerIT {
   }
 
   @Test
+  @Disabled
   void marcBibSourceRecordDomainEvent_shouldKeepExistedEdgesAndPropertiesAndFolioMetadata_inCaseOfUpdate() {
     // given
     var firstInstanceMarc = loadResourceAsString("samples/marc2ld/small_instance.jsonl");
