@@ -33,7 +33,7 @@ public class SourceRecordDomainEventHandler {
 
   private static final String EVENT_SAVED = "SourceRecordDomainEvent [id {}] was saved as resource [id {}]";
   private static final String EMPTY_RESOURCE_MAPPED = "Empty resource(s) mapped from SourceRecordDomainEvent [id {}]";
-  private static final String NO_MARC_EVENT = "SourceRecordDomainEvent [id {}] has no Marc record inside";
+  private static final String NO_MARC_EVENT = "SourceRecordDomainEvent [id {}] has no Marc record inside:\n{}";
   private static final String UNSUPPORTED_TYPE = "Ignoring unsupported {} type [{}] in SourceRecordDomainEvent [id {}]";
   private static final String IGNORED_LINKED_DATA_SOURCE = "Instance [id {}] has source = LINKED_DATA, "
     + "thus skipping it's update out of SourceRecordDomainEvent [id {}]";
@@ -59,7 +59,7 @@ public class SourceRecordDomainEventHandler {
     if (isEmpty(event.getEventPayload())
       || isEmpty(event.getEventPayload().getParsedRecord())
       || isEmpty(event.getEventPayload().getParsedRecord().getContent())) {
-      log.warn(NO_MARC_EVENT, event.getId());
+      log.warn(NO_MARC_EVENT, event.getId(), event);
       return true;
     }
     if (isNull(recordType) || !SUPPORTED_RECORD_TYPES.contains(recordType)) {
