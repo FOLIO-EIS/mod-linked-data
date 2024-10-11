@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Inventory instance event data model",
+  "javaType": "org.folio.rest.jaxrs.model.InventoryInstance",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "UUID",
+      "$ref": "../common/uuid.json"
+    },
+    "contributors": {
+      "type": "array",
+      "description": "Contributor array",
+      "items": {
+        "$ref": "../search/common/linkedDataContributor.json"
+      }
+    },
+    "editionStatements": {
+      "type": "array",
+      "description": "Edition statement array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "identifiers": {
+      "type": "array",
+      "description": "Resource identifier array",
+      "items": {
+        "$ref": "../search/common/linkedDataIdentifier.json"
+      }
+    },
+    "staffSuppress": {
+      "description": "Suppress flags - Staff",
+      "type": "boolean"
+    },
+    "discoverySuppress": {
+      "description": "Suppress flags - From Discovery",
+      "type": "boolean"
+    },
+    "titles": {
+      "type": "array",
+      "description": "Title array",
+      "items": {
+        "$ref": "../search/common/linkedDataTitle.json"
+      }
+    }
+  },
+  "required": [
+    "id"
+  ]
+}

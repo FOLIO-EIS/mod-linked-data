@@ -1,0 +1,53 @@
+{
+    "old": {
+        "id": "302e2de6-3a13-4d87-a294-8fc01ec4bddf",
+        "_version": 4,
+        "hrid": "in10391142",
+        "source": "MARC",
+        "title": "The \"\"Yoga Sutra of Patanjali\"\"A Biography.",
+        "discoverySuppress": false
+    },
+    "new": {
+        "id": "302e2de6-3a13-4d87-a294-8fc01ec4bddf",
+        "_version": 5,
+        "hrid": "in10391142",
+        "source": "MARC",
+        "title": "The \"\"Yoga Sutra of Patanjali\"\"A Biography.",
+        "staffSuppress": true,
+        "discoverySuppress": true,
+        "identifiers": [
+            {
+                "value": "(OCoLC)881196890",
+                "identifierTypeId": "01ca9cda-7027-4d64-abed-9e3c4943daf2"
+            },
+            {
+                "value": "(AU-PeEL)CARLIEBL1603110",
+                "identifierTypeId": "2baf4cec-6abf-438b-abd0-a6c512c3c173"
+            }
+        ],
+        "contributors": [
+            {
+                "name": "White, David Gordon.",
+                "contributorNameTypeId": "35b01201-597f-4938-a0d1-110245ba9d67",
+                "primary": true
+            }
+        ],
+        "notes": [
+            {
+                "instanceNoteTypeId": "5b15c7bf-3f86-4e1a-9b05-6895467147c9",
+                "note": "Description based upon print version of record.",
+                "staffOnly": false
+            }
+        ],
+        "publication": [
+            {
+                "publisher": "Princeton University Press",
+                "place": "Princeton :",
+                "dateOfPublication": "2014"
+            }
+        ]
+    },
+    "id": "302e2de6-3a13-4d87-a294-8fc01ec4bddd",
+    "type": "UPDATE",
+    "tenant": "fs09000000"
+}

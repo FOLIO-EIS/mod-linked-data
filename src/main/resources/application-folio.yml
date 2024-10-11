@@ -5,6 +5,7 @@ mod-linked-data:
     topic:
       work-search-index: linked-data.work
       authority-search-index: linked-data.authority
+      instance-search-index: linked-data.instance
       instance-ingress: inventory.instance_ingress
 
 folio:
@@ -26,6 +27,10 @@ folio:
         concurrency: ${KAFKA_SOURCE_RECORD_DOMAIN_EVENT_CONCURRENCY:1}
         topic-pattern: ${KAFKA_SOURCE_RECORD_DOMAIN_EVENT_TOPIC_PATTERN:(${folio.environment}\.)(.*\.)srs.source_records}
         group-id: ${folio.environment}-linked-data-source-record-domain-event-group
+      inventory-instance-event:
+        concurrency: ${KAFKA_INVENTORY_INSTANCE_EVENT_CONCURRENCY:1}
+        topic-pattern: ${KAFKA_INVENTORY_INSTANCE_EVENT_TOPIC_PATTERN:(${folio.environment}\.)(.*\.)inventory.instance}
+        group-id: ${folio.environment}-linked-data-inventory-instance-event-group
     retry-interval-ms: ${KAFKA_RETRY_INTERVAL_MS:2000}
     retry-delivery-attempts: ${KAFKA_RETRY_DELIVERY_ATTEMPTS:6}
     topics:
@@ -33,6 +38,9 @@ folio:
         numPartitions: ${KAFKA_BIBFRAME_TOPIC_PARTITIONS:3}
         replicationFactor: ${KAFKA_BIBFRAME_TOPIC_REPLICATION_FACTOR:}
       - name: ${mod-linked-data.kafka.topic.authority-search-index:linked-data.authority}
+        numPartitions: ${KAFKA_BIBFRAME_TOPIC_PARTITIONS:3}
+        replicationFactor: ${KAFKA_BIBFRAME_TOPIC_REPLICATION_FACTOR:}
+      - name: ${mod-linked-data.kafka.topic.instance-search-index:linked-data.instance}
         numPartitions: ${KAFKA_BIBFRAME_TOPIC_PARTITIONS:3}
         replicationFactor: ${KAFKA_BIBFRAME_TOPIC_REPLICATION_FACTOR:}
 

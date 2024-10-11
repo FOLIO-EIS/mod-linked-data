@@ -12,11 +12,15 @@ folio:
     topics:
       - name: linked-data.work
         numPartitions: 1
+      - name: linked-data.instance
+        numPartitions: 1
       - name: linked-data.authority
         numPartitions: 1
       - name: inventory.instance_ingress
         numPartitions: 1
       - name: srs.source_records
+        num-partitions: 1
+      - name: inventory.instance
         num-partitions: 1
 
 test:
