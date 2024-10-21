@@ -27,4 +27,5 @@ test:
   topic:
     search-work: folio.test_tenant.linked-data.work
     search-authority: folio.test_tenant.linked-data.authority
+    search-instance: folio.test_tenant.linked-data.instance
     inventory-instance-ingress: folio.test_tenant.inventory.instance_ingress

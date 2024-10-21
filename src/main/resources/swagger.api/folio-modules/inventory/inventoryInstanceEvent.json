@@ -21,9 +21,17 @@
     },
     "tenant": {
       "type": "string"
+    },
+    "ts": {
+      "type": "string"
     }
   },
   "required": [
     "id"
-  ]
+  ],
+  "excludedFromEqualsAndHashCode": [
+    "tenant",
+    "ts"
+  ],
+  "x-implements": "org.folio.spring.tools.kafka.BaseKafkaMessage"
 }
